@@ -92,6 +92,15 @@ extern unsigned COL_LOW_BIT_WIDTH;
 extern unsigned REFRESH_PERIOD;
 extern float tCK;
 
+//Fault injection parameters
+extern int LimpingLevel;
+extern int LimpingChannel;
+extern int LimpingRank;
+extern int LimpingBank;
+extern int LimpingRow;
+extern int LimpingColumn;
+extern int LimpingDelay;
+
 extern unsigned CL;
 extern unsigned AL;
 #define RL (CL+AL)

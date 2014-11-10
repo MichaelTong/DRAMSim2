@@ -39,6 +39,15 @@
 
 using namespace std;
 
+//Fault injection parameters
+int LimpingLevel;
+int LimpingChannel;
+int LimpingRank;
+int LimpingBank;
+int LimpingRow;
+int LimpingColumn;
+int LimpingDelay;
+
 // these are the values that are extern'd in SystemConfig.h so that they
 // have global scope even though they are set by IniReader
 

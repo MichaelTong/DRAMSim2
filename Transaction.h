@@ -59,6 +59,7 @@ public:
 	void *data;
 	uint64_t timeAdded;
 	uint64_t timeReturned;
+	bool limping;
 
 
 	friend ostream &operator<<(ostream &os, const Transaction &t);
