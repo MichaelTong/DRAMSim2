@@ -71,6 +71,7 @@ public:
 	void print();
 	void print(uint64_t currentClockCycle, bool dataStart);
 	void printData() const;
+	bool limping;
 
 };
 }
