@@ -2,20 +2,20 @@
 *  Copyright (c) 2010-2011, Elliott Cooper-Balis
 *                             Paul Rosenfeld
 *                             Bruce Jacob
-*                             University of Maryland 
+*                             University of Maryland
 *                             dramninjas [at] gmail [dot] com
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
-*  
+*
 *     * Redistributions of source code must retain the above copyright notice,
 *        this list of conditions and the following disclaimer.
-*  
+*
 *     * Redistributions in binary form must reproduce the above copyright notice,
 *        this list of conditions and the following disclaimer in the documentation
 *        and/or other materials provided with the distribution.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -38,8 +38,8 @@
 #include "PrintMacros.h"
 
 using std::endl;
-using std::hex; 
-using std::dec; 
+using std::hex;
+using std::dec;
 
 namespace DRAMSim {
 
@@ -56,10 +56,11 @@ Transaction::Transaction(const Transaction &t)
 	  , data(NULL)
 	  , timeAdded(t.timeAdded)
 	  , timeReturned(t.timeReturned)
+	  , limping(false)
 {
 	#ifndef NO_STORAGE
 	ERROR("Data storage is really outdated and these copies happen in an \n improper way, which will eventually cause problems. Please send an \n email to dramninjas [at] gmail [dot] com if you need data storage");
-	abort(); 
+	abort();
 	#endif
 }
 
@@ -77,7 +78,7 @@ ostream &operator<<(ostream &os, const Transaction &t)
 	{
 		os<<"T [Data] [0x" << hex << t.address << "] [" << dec << t.data << "]" <<endl;
 	}
-	return os; 
+	return os;
 }
 }
 

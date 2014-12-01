@@ -93,13 +93,15 @@ extern unsigned REFRESH_PERIOD;
 extern float tCK;
 
 //Fault injection parameters
-extern int LimpingLevel;
-extern int LimpingChannel;
-extern int LimpingRank;
-extern int LimpingBank;
-extern int LimpingRow;
-extern int LimpingColumn;
-extern int LimpingDelay;
+extern bool LIMPING_ON;
+extern std::string LIMPING_LEVEL;
+extern unsigned LIMPING_CHANNEL;
+extern unsigned LIMPING_RANK;
+extern unsigned LIMPING_BANK;
+extern unsigned LIMPING_ROW;
+extern unsigned LIMPING_COLUMN;
+extern unsigned LIMPING_READ_DELAY;
+extern unsigned LIMPING_WRITE_DELAY;
 
 extern unsigned CL;
 extern unsigned AL;

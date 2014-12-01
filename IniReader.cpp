@@ -2,20 +2,20 @@
 *  Copyright (c) 2010-2011, Elliott Cooper-Balis
 *                             Paul Rosenfeld
 *                             Bruce Jacob
-*                             University of Maryland 
+*                             University of Maryland
 *                             dramninjas [at] gmail [dot] com
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
-*  
+*
 *     * Redistributions of source code must retain the above copyright notice,
 *        this list of conditions and the following disclaimer.
-*  
+*
 *     * Redistributions in binary form must reproduce the above copyright notice,
 *        this list of conditions and the following disclaimer in the documentation
 *        and/or other materials provided with the distribution.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -40,13 +40,15 @@
 using namespace std;
 
 //Fault injection parameters
-int LimpingLevel;
-int LimpingChannel;
-int LimpingRank;
-int LimpingBank;
-int LimpingRow;
-int LimpingColumn;
-int LimpingDelay;
+bool LIMPING_ON;
+string LIMPING_LEVEL;
+unsigned LIMPING_CHANNEL;
+unsigned LIMPING_RANK;
+unsigned LIMPING_BANK;
+unsigned LIMPING_ROW;
+unsigned LIMPING_COLUMN;
+unsigned LIMPING_READ_DELAY;
+unsigned LIMPING_WRITE_DELAY;
 
 // these are the values that are extern'd in SystemConfig.h so that they
 // have global scope even though they are set by IniReader
@@ -135,7 +137,7 @@ bool VIS_FILE_OUTPUT;
 
 bool VERIFICATION_OUTPUT;
 
-bool DEBUG_INI_READER=false;
+bool DEBUG_INI_READER=true;
 
 namespace DRAMSim
 {
@@ -205,6 +207,16 @@ static ConfigMap configMap[] =
 	DEFINE_STRING_PARAM(SCHEDULING_POLICY,SYS_PARAM),
 	DEFINE_STRING_PARAM(ADDRESS_MAPPING_SCHEME,SYS_PARAM),
 	DEFINE_STRING_PARAM(QUEUING_STRUCTURE,SYS_PARAM),
+	//limping parameters
+	DEFINE_BOOL_PARAM(LIMPING_ON,SYS_PARAM),
+    DEFINE_STRING_PARAM(LIMPING_LEVEL,SYS_PARAM),
+    DEFINE_UINT_PARAM(LIMPING_CHANNEL,SYS_PARAM),
+    DEFINE_UINT_PARAM(LIMPING_RANK,SYS_PARAM),
+    DEFINE_UINT_PARAM(LIMPING_BANK,SYS_PARAM),
+    DEFINE_UINT_PARAM(LIMPING_ROW,SYS_PARAM),
+    DEFINE_UINT_PARAM(LIMPING_COLUMN,SYS_PARAM),
+    DEFINE_UINT_PARAM(LIMPING_READ_DELAY,SYS_PARAM),
+    DEFINE_UINT_PARAM(LIMPING_WRITE_DELAY,SYS_PARAM),
 	// debug flags
 	DEFINE_BOOL_PARAM(DEBUG_TRANS_Q,SYS_PARAM),
 	DEFINE_BOOL_PARAM(DEBUG_CMD_Q,SYS_PARAM),
@@ -263,10 +275,10 @@ void IniReader::WriteValuesOut(std::ofstream &visDataOut)
 {
 	visDataOut<<"!!SYSTEM_INI"<<endl;
 
-	WriteParams(visDataOut, SYS_PARAM); 
+	WriteParams(visDataOut, SYS_PARAM);
 	visDataOut<<"!!DEVICE_INI"<<endl;
 
-	WriteParams(visDataOut, DEV_PARAM); 
+	WriteParams(visDataOut, DEV_PARAM);
 	visDataOut<<"!!EPOCH_DATA"<<endl;
 
 }
@@ -448,15 +460,15 @@ void IniReader::ReadIniFile(string filename, bool isSystemFile)
 void IniReader::OverrideKeys(const OverrideMap *map)
 {
 	if (!map)
-		return; 
+		return;
 
 	OverrideIterator it = map->begin();
-	DEBUG("Key overrides from command line:"); 
+	DEBUG("Key overrides from command line:");
 	for (it=map->begin(); it != map->end(); it++)
 	{
-		string key = it->first; 
-		string value = it->second; 
-		DEBUG("\t'"<< key <<"'->'"<< value<< "'"); 
+		string key = it->first;
+		string value = it->second;
+		DEBUG("\t'"<< key <<"'->'"<< value<< "'");
 		IniReader::SetKey(key,value);
 	}
 }
@@ -524,7 +536,7 @@ void IniReader::InitEnumsFromStrings()
 	if (ADDRESS_MAPPING_SCHEME == "scheme1")
 	{
 		addressMappingScheme = Scheme1;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("ADDR SCHEME: 1");
 		}
@@ -532,7 +544,7 @@ void IniReader::InitEnumsFromStrings()
 	else if (ADDRESS_MAPPING_SCHEME == "scheme2")
 	{
 		addressMappingScheme = Scheme2;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("ADDR SCHEME: 2");
 		}
@@ -540,7 +552,7 @@ void IniReader::InitEnumsFromStrings()
 	else if (ADDRESS_MAPPING_SCHEME == "scheme3")
 	{
 		addressMappingScheme = Scheme3;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("ADDR SCHEME: 3");
 		}
@@ -548,7 +560,7 @@ void IniReader::InitEnumsFromStrings()
 	else if (ADDRESS_MAPPING_SCHEME == "scheme4")
 	{
 		addressMappingScheme = Scheme4;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("ADDR SCHEME: 4");
 		}
@@ -556,7 +568,7 @@ void IniReader::InitEnumsFromStrings()
 	else if (ADDRESS_MAPPING_SCHEME == "scheme5")
 	{
 		addressMappingScheme = Scheme5;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("ADDR SCHEME: 5");
 		}
@@ -564,7 +576,7 @@ void IniReader::InitEnumsFromStrings()
 	else if (ADDRESS_MAPPING_SCHEME == "scheme6")
 	{
 		addressMappingScheme = Scheme6;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("ADDR SCHEME: 6");
 		}
@@ -572,7 +584,7 @@ void IniReader::InitEnumsFromStrings()
 	else if (ADDRESS_MAPPING_SCHEME == "scheme7")
 	{
 		addressMappingScheme = Scheme7;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("ADDR SCHEME: 7");
 		}
@@ -586,7 +598,7 @@ void IniReader::InitEnumsFromStrings()
 	if (ROW_BUFFER_POLICY == "open_page")
 	{
 		rowBufferPolicy = OpenPage;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("ROW BUFFER: open page");
 		}
@@ -594,7 +606,7 @@ void IniReader::InitEnumsFromStrings()
 	else if (ROW_BUFFER_POLICY == "close_page")
 	{
 		rowBufferPolicy = ClosePage;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("ROW BUFFER: close page");
 		}
@@ -608,7 +620,7 @@ void IniReader::InitEnumsFromStrings()
 	if (QUEUING_STRUCTURE == "per_rank_per_bank")
 	{
 		queuingStructure = PerRankPerBank;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("QUEUING STRUCT: per rank per bank");
 		}
@@ -616,7 +628,7 @@ void IniReader::InitEnumsFromStrings()
 	else if (QUEUING_STRUCTURE == "per_rank")
 	{
 		queuingStructure = PerRank;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("QUEUING STRUCT: per rank");
 		}
@@ -630,7 +642,7 @@ void IniReader::InitEnumsFromStrings()
 	if (SCHEDULING_POLICY == "rank_then_bank_round_robin")
 	{
 		schedulingPolicy = RankThenBankRoundRobin;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("SCHEDULING: Rank Then Bank");
 		}
@@ -638,7 +650,7 @@ void IniReader::InitEnumsFromStrings()
 	else if (SCHEDULING_POLICY == "bank_then_rank_round_robin")
 	{
 		schedulingPolicy = BankThenRankRoundRobin;
-		if (DEBUG_INI_READER) 
+		if (DEBUG_INI_READER)
 		{
 			DEBUG("SCHEDULING: Bank Then Rank");
 		}
@@ -648,7 +660,46 @@ void IniReader::InitEnumsFromStrings()
 		cout << "WARNING: Unknown scheduling policy '"<<SCHEDULING_POLICY<<"'; valid options are 'rank_then_bank_round_robin' or 'bank_then_rank_round_robin'; defaulting to Bank Then Rank Round Robin" << endl;
 		schedulingPolicy = BankThenRankRoundRobin;
 	}
-
+    if(LIMPING_LEVEL == "channel")
+    {
+        if(DEBUG_INI_READER)
+        {
+            DEBUG("LIMPING LEVEL: Channel");
+        }
+    }
+    else if(LIMPING_LEVEL == "rank")
+    {
+        if(DEBUG_INI_READER)
+        {
+            DEBUG("LIMPING LEVEL: Rank");
+        }
+    }
+    else if(LIMPING_LEVEL == "bank")
+    {
+        if(DEBUG_INI_READER)
+        {
+            DEBUG("LIMPING LEVEL: Bank");
+        }
+    }
+    else if(LIMPING_LEVEL == "row")
+    {
+        if(DEBUG_INI_READER)
+        {
+            DEBUG("LIMPING LEVEL: Row");
+        }
+    }
+    else if(LIMPING_LEVEL == "column")
+    {
+        if(DEBUG_INI_READER)
+        {
+            DEBUG("LIMPING LEVEL: Column");
+        }
+    }
+    else
+    {
+		cout << "WARNING: Unknown Limping Level '"<<LIMPING_LEVEL<<"'; valid options are 'channel', 'rank', 'bank', 'row' or 'column'; defaulting to Channel" << endl;
+		LIMPING_LEVEL = "channel";
+    }
 }
 
 } // namespace DRAMSim

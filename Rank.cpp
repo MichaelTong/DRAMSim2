@@ -2,20 +2,20 @@
 *  Copyright (c) 2010-2011, Elliott Cooper-Balis
 *                             Paul Rosenfeld
 *                             Bruce Jacob
-*                             University of Maryland 
+*                             University of Maryland
 *                             dramninjas [at] gmail [dot] com
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
-*  
+*
 *     * Redistributions of source code must retain the above copyright notice,
 *        this list of conditions and the following disclaimer.
-*  
+*
 *     * Redistributions in binary form must reproduce the above copyright notice,
 *        this list of conditions and the following disclaimer in the documentation
 *        and/or other materials provided with the distribution.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -76,11 +76,13 @@ Rank::~Rank()
 	{
 		delete readReturnPacket[i];
 	}
-	readReturnPacket.clear(); 
-	delete outgoingDataPacket; 
+	readReturnPacket.clear();
+	delete outgoingDataPacket;
 }
 void Rank::receiveFromBus(BusPacket *packet)
 {
+    unsigned delay;
+    int countdownsize;
 	if (DEBUG_BUS)
 	{
 		PRINTN(" -- R" << this->id << " Receiving On Bus    : ");
@@ -119,7 +121,28 @@ void Rank::receiveFromBus(BusPacket *packet)
 		packet->busPacketType = DATA;
 #endif
 		readReturnPacket.push_back(packet);
-		readReturnCountdown.push_back(RL);
+		/***
+            ADD additional read delay here.
+            To make sure the time order is correct, the latter read packet
+            must wait until the former packet is done reading.
+		***/
+		delay=RL;
+        if(packet->limping==true)
+        {
+            delay=delay+LIMPING_READ_DELAY;
+        }
+        countdownsize = readReturnCountdown.size();
+        if(countdownsize>0&&readReturnCountdown[countdownsize-1]>delay)
+        {
+            delay=readReturnCountdown[countdownsize-1]+BL/2;
+        }
+        else if(countdownsize>0&&delay-readReturnCountdown[countdownsize-1]<=BL/2)
+        {
+            delay=readReturnCountdown[countdownsize-1]+BL/2;
+        }
+
+		readReturnCountdown.push_back(delay);/***TODO: Add read latency here.***/
+		//readReturnCountdown.push_back(RL);
 		break;
 	case READ_P:
 		//make sure a read is allowed
@@ -149,7 +172,27 @@ void Rank::receiveFromBus(BusPacket *packet)
 #endif
 
 		readReturnPacket.push_back(packet);
-		readReturnCountdown.push_back(RL);
+		/***
+            ADD additional read delay here.
+            To make sure the time order is correct, the latter read packet
+            must wait until the former packet is done reading.
+		***/
+		delay=RL;
+        if(packet->limping==true)
+        {
+            delay=delay+LIMPING_READ_DELAY;
+        }
+        countdownsize = readReturnCountdown.size();
+        if(countdownsize>0&&readReturnCountdown[countdownsize-1]>delay)
+        {
+            delay=readReturnCountdown[countdownsize-1]+BL/2;
+        }
+        else if(countdownsize>0&&delay-readReturnCountdown[countdownsize-1]<=BL/2)
+        {
+            delay=readReturnCountdown[countdownsize-1]+BL/2;
+        }
+        //readReturnCountdown.push_back(RL);
+		readReturnCountdown.push_back(delay);/**TODO: Add read latency here.**/
 		break;
 	case WRITE:
 		//make sure a write is allowed
@@ -236,7 +279,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 				bankStates[i].nextActivate = max(bankStates[i].nextActivate, currentClockCycle + tRRD);
 			}
 		}
-		delete(packet); 
+		delete(packet);
 		break;
 	case PRECHARGE:
 		//make sure precharge is allowed
@@ -249,7 +292,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 
 		bankStates[packet->bank].currentBankState = Idle;
 		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + tRP);
-		delete(packet); 
+		delete(packet);
 		break;
 	case REFRESH:
 		refreshWaiting = false;
@@ -262,7 +305,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 			}
 			bankStates[i].nextActivate = currentClockCycle + tRFC;
 		}
-		delete(packet); 
+		delete(packet);
 		break;
 	case DATA:
 		// TODO: replace this check with something that works?
@@ -317,7 +360,6 @@ void Rank::update()
 	{
 		readReturnCountdown[i]--;
 	}
-
 
 	if (readReturnCountdown.size() > 0 && readReturnCountdown[0]==0)
 	{

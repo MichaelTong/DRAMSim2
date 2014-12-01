@@ -2,20 +2,20 @@
 *  Copyright (c) 2010-2011, Elliott Cooper-Balis
 *                             Paul Rosenfeld
 *                             Bruce Jacob
-*                             University of Maryland 
+*                             University of Maryland
 *                             dramninjas [at] gmail [dot] com
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
-*  
+*
 *     * Redistributions of source code must retain the above copyright notice,
 *        this list of conditions and the following disclaimer.
-*  
+*
 *     * Redistributions in binary form must reproduce the above copyright notice,
 *        this list of conditions and the following disclaimer in the documentation
 *        and/or other materials provided with the distribution.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -54,7 +54,7 @@ enum BusPacketType
 class BusPacket
 {
 	BusPacket();
-	ostream &dramsim_log; 
+	ostream &dramsim_log;
 public:
 	//Fields
 	BusPacketType busPacketType;
@@ -64,6 +64,7 @@ public:
 	unsigned rank;
 	uint64_t physicalAddress;
 	void *data;
+	bool limping;
 
 	//Functions
 	BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, ostream &dramsim_log_);
@@ -71,7 +72,6 @@ public:
 	void print();
 	void print(uint64_t currentClockCycle, bool dataStart);
 	void printData() const;
-	bool limping;
 
 };
 }

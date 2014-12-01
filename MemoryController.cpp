@@ -2,20 +2,20 @@
 *  Copyright (c) 2010-2011, Elliott Cooper-Balis
 *                             Paul Rosenfeld
 *                             Bruce Jacob
-*                             University of Maryland 
+*                             University of Maryland
 *                             dramninjas [at] gmail [dot] com
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
-*  
+*
 *     * Redistributions of source code must retain the above copyright notice,
 *        this list of conditions and the following disclaimer.
-*  
+*
 *     * Redistributions in binary form must reproduce the above copyright notice,
 *        this list of conditions and the following disclaimer in the documentation
 *        and/or other materials provided with the distribution.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -41,7 +41,7 @@
 
 #define SEQUENTIAL(rank,bank) (rank*NUM_BANKS)+bank
 
-/* Power computations are localized to MemoryController.cpp */ 
+/* Power computations are localized to MemoryController.cpp */
 extern unsigned IDD0;
 extern unsigned IDD1;
 extern unsigned IDD2P;
@@ -56,7 +56,7 @@ extern unsigned IDD5;
 extern unsigned IDD6;
 extern unsigned IDD6L;
 extern unsigned IDD7;
-extern float Vdd; 
+extern float Vdd;
 
 using namespace DRAMSim;
 
@@ -289,7 +289,27 @@ void MemoryController::update()
 			writeDataToSend.push_back(new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
 			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
 			                                    poppedBusPacket->data, dramsim_log));
-			writeDataCountdown.push_back(WL);
+            /***
+                ADD additional write delay here.
+                To make sure the time order is correct, the latter write packet
+                must wait until the former packet is sent.
+            ***/
+            unsigned delay=WL;
+            if(poppedBusPacket->limping==true)
+            {
+                delay=delay+LIMPING_WRITE_DELAY;
+            }
+            int countdownsize = writeDataCountdown.size();
+            if(countdownsize>0&&writeDataCountdown[countdownsize-1]>delay)
+            {
+                delay=writeDataCountdown[countdownsize-1]+BL/2;
+            }
+            else if(countdownsize>0&&delay-writeDataCountdown[countdownsize-1]<=BL/2)
+            {
+                delay=writeDataCountdown[countdownsize-1]+BL/2;
+            }
+            //writeDataCountdown.push_back(WL+2000);
+			writeDataCountdown.push_back(delay);/***TODO: seems to be able to delay write delay***/
 		}
 
 		//
@@ -308,7 +328,7 @@ void MemoryController::update()
 					PRINT(" ++ Adding Read energy to total energy");
 				}
 				burstEnergy[rank] += (IDD4R - IDD3N) * BL/2 * NUM_DEVICES;
-				if (poppedBusPacket->busPacketType == READ_P) 
+				if (poppedBusPacket->busPacketType == READ_P)
 				{
 					//Don't bother setting next read or write times because the bank is no longer active
 					//bankStates[rank][bank].currentBankState = Idle;
@@ -360,7 +380,7 @@ void MemoryController::update()
 				break;
 			case WRITE_P:
 			case WRITE:
-				if (poppedBusPacket->busPacketType == WRITE_P) 
+				if (poppedBusPacket->busPacketType == WRITE_P)
 				{
 					bankStates[rank][bank].nextActivate = max(currentClockCycle + WRITE_AUTOPRE_DELAY,
 							bankStates[rank][bank].nextActivate);
@@ -507,10 +527,10 @@ void MemoryController::update()
 		//and add them to the command queue
 		if (commandQueue.hasRoomFor(2, newTransactionRank, newTransactionBank))
 		{
-			if (DEBUG_ADDR_MAP) 
+			if (DEBUG_ADDR_MAP)
 			{
 				PRINTN("== New Transaction - Mapping Address [0x" << hex << transaction->address << dec << "]");
-				if (transaction->transactionType == DATA_READ) 
+				if (transaction->transactionType == DATA_READ)
 				{
 					PRINT(" (Read)");
 				}
@@ -539,7 +559,23 @@ void MemoryController::update()
 			BusPacket *command = new BusPacket(bpType, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
 					newTransactionBank, transaction->data, dramsim_log);
-
+            if(transaction->limping==true)
+            {
+                if(LIMPING_LEVEL=="channel")
+                    command->limping=true;
+                else if(LIMPING_LEVEL=="rank"&&LIMPING_RANK==command->rank)
+                    command->limping=true;
+                else if(LIMPING_LEVEL=="bank"&&LIMPING_RANK==command->rank&&LIMPING_BANK==command->bank)
+                    command->limping=true;
+                else if(LIMPING_LEVEL=="row"&&LIMPING_RANK==command->rank&&LIMPING_BANK==command->bank&&LIMPING_ROW==command->row)
+                    command->limping=true;
+                else if(LIMPING_LEVEL=="column"&&LIMPING_RANK==command->rank&&LIMPING_BANK==command->bank&&LIMPING_COLUMN==command->column)
+                    command->limping=true;
+                else
+                    command->limping=false;
+            }
+            else
+                command->limping=false;
 
 
 			commandQueue.enqueue(ACTcommand);
@@ -554,7 +590,7 @@ void MemoryController::update()
 			else
 			{
 				// just delete the transaction now that it's a buspacket
-				delete transaction; 
+				delete transaction;
 			}
 			/* only allow one transaction to be scheduled per cycle -- this should
 			 * be a reasonable assumption considering how much logic would be
@@ -686,14 +722,14 @@ void MemoryController::update()
 
 				delete pendingReadTransactions[i];
 				pendingReadTransactions.erase(pendingReadTransactions.begin()+i);
-				foundMatch=true; 
+				foundMatch=true;
 				break;
 			}
 		}
 		if (!foundMatch)
 		{
 			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[0]->address<<dec);
-			abort(); 
+			abort();
 		}
 		delete returnTransaction[0];
 		returnTransaction.erase(returnTransaction.begin());
@@ -773,7 +809,7 @@ bool MemoryController::addTransaction(Transaction *trans)
 		transactionQueue.push_back(trans);
 		return true;
 	}
-	else 
+	else
 	{
 		return false;
 	}
@@ -848,7 +884,7 @@ void MemoryController::printStats(bool finalStats)
 	PRINTN( "   Total Return Transactions : " << totalTransactions );
 	PRINT( " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s");
 
-	double totalAggregateBandwidth = 0.0;	
+	double totalAggregateBandwidth = 0.0;
 	for (size_t r=0;r<NUM_RANKS;r++)
 	{
 
@@ -897,8 +933,8 @@ void MemoryController::printStats(bool finalStats)
 				totalAggregateBandwidth += bandwidth[SEQUENTIAL(r,b)];
 				csvOut << CSVWriter::IndexedName("Average_Latency",myChannel,r,b) << averageLatency[SEQUENTIAL(r,b)];
 			}
-			csvOut << CSVWriter::IndexedName("Rank_Aggregate_Bandwidth",myChannel,r) << totalRankBandwidth; 
-			csvOut << CSVWriter::IndexedName("Rank_Average_Bandwidth",myChannel,r) << totalRankBandwidth/NUM_RANKS; 
+			csvOut << CSVWriter::IndexedName("Rank_Aggregate_Bandwidth",myChannel,r) << totalRankBandwidth;
+			csvOut << CSVWriter::IndexedName("Rank_Average_Bandwidth",myChannel,r) << totalRankBandwidth/NUM_RANKS;
 		}
 	}
 	if (VIS_FILE_OUTPUT)
@@ -931,7 +967,7 @@ void MemoryController::printStats(bool finalStats)
 			PRINT( " --- Grand Total Bank usage list");
 			for (size_t i=0;i<NUM_RANKS;i++)
 			{
-				PRINT("Rank "<<i<<":"); 
+				PRINT("Rank "<<i<<":");
 				for (size_t j=0;j<NUM_BANKS;j++)
 				{
 					PRINT( "  b"<<j<<": "<<grandTotalBankAccesses[SEQUENTIAL(i,j)]);
